@@ -1,0 +1,20 @@
+# Exemplo mínimo da MusicLang
+
+music "Minha Musica" {
+    tempo 120
+    key C major
+
+    melody {
+        C4 1/4
+        D4 1/4
+        E4 1/4
+        G4 1/2
+        rest 1/4
+        G4 1/4
+        C4 1/2
+    }
+
+    variation { transpose +2 }
+
+    output "minha_musica.mid"
+}

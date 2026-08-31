@@ -1,0 +1,18 @@
+# Exemplo inválido: retrogradação harmônica (Dominante -> Subdominante: G7 -> F)
+music "Erro Retrogradacao" {
+    tempo 120
+    key C major
+
+    harmony {
+        C 1/1
+        G7 1/1
+        F 1/1
+        C 1/1
+    }
+
+    melody {
+        C4 1/1
+    }
+
+    output "erro.mid"
+}

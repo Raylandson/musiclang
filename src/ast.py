@@ -49,6 +49,24 @@ class Melody:
 
 
 @dataclass(frozen=True)
+class Harmony:
+    eventos: list
+    linha: int
+    coluna: int
+
+
+@dataclass(frozen=True)
+class Chord:
+    cifra: str
+    classe: str
+    acidente: str
+    qualidade: str
+    duracao: tuple[int, int]
+    linha: int
+    coluna: int
+
+
+@dataclass(frozen=True)
 class Note:
     classe: str
     acidente: str
@@ -120,6 +138,11 @@ def _rotulo(no) -> str:
         return f'Output("{no.arquivo}")'
     if isinstance(no, Melody):
         return "Melody"
+    if isinstance(no, Harmony):
+        return "Harmony"
+    if isinstance(no, Chord):
+        n, d = no.duracao
+        return f"Chord({no.cifra}, {n}/{d})"
     if isinstance(no, Note):
         n, d = no.duracao
         return f"Note({no.classe}{no.acidente}{no.oitava}, {n}/{d})"
@@ -145,6 +168,8 @@ def _filhos(no) -> list:
     if isinstance(no, Music):
         return list(no.itens)
     if isinstance(no, Melody):
+        return list(no.eventos)
+    if isinstance(no, Harmony):
         return list(no.eventos)
     if isinstance(no, Variation):
         return list(no.transformacoes)

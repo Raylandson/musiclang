@@ -1,7 +1,7 @@
 """Interface de linha de comando.
 
-Marco 3: léxico, sintático e semântico prontos — --tokens, --ast e --check
-funcionam. A geração de MIDI entra no Marco 4.
+Compila arquivos .music, valida léxico, sintaxe e semântica harmônica e gera
+arquivos MIDI.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import sys
 from .ast import imprimir
 from .errors import CompilerError
 from .lexer import tokenizar
+from .music import gerar_midi
 from .parser import analisar
 from .semantic import verificar
 
@@ -48,31 +49,36 @@ def main(argv: list[str] | None = None) -> int:
         analise = verificar(arvore, fonte)
 
         if args.check:
-            _resumo(args.arquivo, analise)
+            _resumo(args.arquivo, analise, gerou_midi=False)
             return 0
+
+        gerar_midi(analise)
+        _resumo(args.arquivo, analise, gerou_midi=True)
+        return 0
     except CompilerError as erro:
         print(erro, file=sys.stderr)
         return 1
 
-    print("Apenas --tokens, --ast e --check estão disponíveis no Marco 3.", file=sys.stderr)
-    return 2
 
-
-def _resumo(caminho: str, analise) -> None:
+def _resumo(caminho: str, analise, gerou_midi: bool = True) -> None:
     classe, acidente, modo = analise.tonalidade
 
     print("MusicLang Compiler")
     print()
     print(f"Source: {caminho}")
     print()
-    print("[1/3] Lexical analysis........ OK")
-    print("[2/3] Syntax analysis......... OK")
-    print("[3/3] Semantic analysis....... OK")
+    print("[1/4] Lexical analysis........ OK")
+    print("[2/4] Syntax analysis......... OK")
+    print("[3/4] Semantic analysis....... OK")
+    if gerou_midi:
+        print("[4/4] MIDI generation......... OK")
     print()
     print(f"Music:      {analise.nome}")
     print(f"Tempo:      {analise.bpm} BPM")
     print(f"Key:        {classe}{acidente} {modo}")
     print(f"Notes:      {len(analise.melodia.eventos)}")
+    if analise.harmonia is not None:
+        print(f"Chords:     {len(analise.harmonia.eventos)}")
     print(f"Variations: {len(analise.variacoes)}")
     print(f"Output:     {analise.arquivo}")
 

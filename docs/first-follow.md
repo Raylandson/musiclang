@@ -1,12 +1,11 @@
 # FIRST e FOLLOW
 
-Cálculo manual para a gramática de `grammar.md`. Conferido contra a implementação por
-`tests/parser/test_grammar.py`, que compara os conjuntos aqui documentados com os que
-`src/parser.py` calcula.
+Cálculo para a gramática de `grammar.md`. Conferido contra a implementação por
+`src/parser.py`, que calcula e verifica ausência de conflitos em tempo de importação.
 
 Abreviações usadas nas tabelas:
 
-- **ITENS** = `TEMPO` `KEY` `MELODY` `VARIATION` `OUTPUT`
+- **ITENS** = `TEMPO` `KEY` `MELODY` `HARMONY` `VARIATION` `OUTPUT`
 - **TRANSF** = `TRANSPOSE` `OCTAVE` `REPEAT` `REVERSE` `INVERT`
 
 ---
@@ -25,19 +24,22 @@ Regras aplicadas:
 | `<program>` | MUSIC | P1 → FIRST(`<music>`) |
 | `<music>` | MUSIC | P2 começa com o terminal MUSIC |
 | `<music_body>` | ITENS, ε | P3 → FIRST(`<music_item>`); P4 dá ε |
-| `<music_item>` | ITENS | P5–P9, um terminal inicial distinto por alternativa |
-| `<tempo_decl>` | TEMPO | P10 |
-| `<key_decl>` | KEY | P11 |
-| `<mode>` | MAJOR, MINOR | P12, P13 |
-| `<output_decl>` | OUTPUT | P14 |
-| `<melody_block>` | MELODY | P15 |
-| `<event_list>` | NOTE, REST, ε | P16 → FIRST(`<event>`); P17 dá ε |
-| `<event>` | NOTE, REST | P18, P19 |
-| `<variation_block>` | VARIATION | P20 |
-| `<transform_list>` | TRANSF, ε | P21 → FIRST(`<transform>`); P22 dá ε |
-| `<transform>` | TRANSF | P23–P27 |
-| `<signed_number>` | PLUS, MINUS, NUMBER | P28: `<sign_opt>` é anulável, então NUMBER também entra |
-| `<sign_opt>` | PLUS, MINUS, ε | P29, P30, P31 |
+| `<music_item>` | ITENS | P5–P10, um terminal inicial distinto por alternativa |
+| `<tempo_decl>` | TEMPO | P11 |
+| `<key_decl>` | KEY | P12 |
+| `<mode>` | MAJOR, MINOR | P13, P14 |
+| `<output_decl>` | OUTPUT | P15 |
+| `<melody_block>` | MELODY | P16 |
+| `<event_list>` | NOTE, REST, ε | P17 → FIRST(`<event>`); P18 dá ε |
+| `<event>` | NOTE, REST | P19, P20 |
+| `<harmony_block>` | HARMONY | P21 |
+| `<chord_event_list>` | CHORD, REST, ε | P22 → FIRST(`<chord_event>`); P23 dá ε |
+| `<chord_event>` | CHORD, REST | P24, P25 |
+| `<variation_block>` | VARIATION | P26 |
+| `<transform_list>` | TRANSF, ε | P27 → FIRST(`<transform>`); P28 dá ε |
+| `<transform>` | TRANSF | P29–P33 |
+| `<signed_number>` | PLUS, MINUS, NUMBER | P34: `<sign_opt>` é anulável, então NUMBER também entra |
+| `<sign_opt>` | PLUS, MINUS, ε | P35, P36, P37 |
 
 ---
 
@@ -58,16 +60,19 @@ Regras aplicadas:
 | `<music_item>` | ITENS, RBRACE | P3: FIRST(`<music_body>`) menos ε, mais FOLLOW(`<music_body>`) por ser anulável |
 | `<tempo_decl>` | ITENS, RBRACE | P5: no fim de `<music_item>` → herda FOLLOW(`<music_item>`) |
 | `<key_decl>` | ITENS, RBRACE | idem, por P6 |
-| `<mode>` | ITENS, RBRACE | P11: no fim de `<key_decl>` → herda FOLLOW(`<key_decl>`) |
-| `<output_decl>` | ITENS, RBRACE | idem, por P9 |
+| `<mode>` | ITENS, RBRACE | P12: no fim de `<key_decl>` → herda FOLLOW(`<key_decl>`) |
+| `<output_decl>` | ITENS, RBRACE | idem, por P10 |
 | `<melody_block>` | ITENS, RBRACE | idem, por P7 |
-| `<event_list>` | RBRACE | P15: seguido de RBRACE. P16 no fim → herda o próprio FOLLOW |
-| `<event>` | NOTE, REST, RBRACE | P16: FIRST(`<event_list>`) menos ε, mais FOLLOW(`<event_list>`) |
-| `<variation_block>` | ITENS, RBRACE | por P8 |
-| `<transform_list>` | RBRACE | P20: seguido de RBRACE |
-| `<transform>` | TRANSF, RBRACE | P21: FIRST(`<transform_list>`) menos ε, mais FOLLOW(`<transform_list>`) |
-| `<signed_number>` | TRANSF, RBRACE | P23/P24: no fim de `<transform>` → herda FOLLOW(`<transform>`) |
-| `<sign_opt>` | NUMBER | P28: seguido do terminal NUMBER |
+| `<harmony_block>` | ITENS, RBRACE | idem, por P8 |
+| `<event_list>` | RBRACE | P16: seguido de RBRACE. P17 no fim → herda o próprio FOLLOW |
+| `<event>` | NOTE, REST, RBRACE | P17: FIRST(`<event_list>`) menos ε, mais FOLLOW(`<event_list>`) |
+| `<chord_event_list>` | RBRACE | P21: seguido de RBRACE. P22 no fim → herda o próprio FOLLOW |
+| `<chord_event>` | CHORD, REST, RBRACE | P22: FIRST(`<chord_event_list>`) menos ε, mais FOLLOW(`<chord_event_list>`) |
+| `<variation_block>` | ITENS, RBRACE | por P9 |
+| `<transform_list>` | RBRACE | P26: seguido de RBRACE |
+| `<transform>` | TRANSF, RBRACE | P27: FIRST(`<transform_list>`) menos ε, mais FOLLOW(`<transform_list>`) |
+| `<signed_number>` | TRANSF, RBRACE | P29/P30: no fim de `<transform>` → herda FOLLOW(`<transform>`) |
+| `<sign_opt>` | NUMBER | P34: seguido do terminal NUMBER |
 
 ---
 
@@ -79,21 +84,20 @@ Regras aplicadas:
 |---|---|---|---|
 | `<music_body>` | ITENS | RBRACE | ∅ ✔ |
 | `<event_list>` | NOTE, REST | RBRACE | ∅ ✔ |
+| `<chord_event_list>` | CHORD, REST | RBRACE | ∅ ✔ |
 | `<transform_list>` | TRANSF | RBRACE | ∅ ✔ |
 | `<sign_opt>` | PLUS, MINUS | NUMBER | ∅ ✔ |
-
-O que torna as três primeiras seguras é o mesmo fato: só `RBRACE` fecha um bloco, e `RBRACE`
-nunca inicia nenhum item, evento ou transformação.
 
 ### 2. Alternativas não-anuláveis: FIRST dois a dois disjuntos
 
 | Não-terminal | Alternativas | FIRST |
 |---|---|---|
-| `<music_item>` | P5–P9 | TEMPO · KEY · MELODY · VARIATION · OUTPUT |
-| `<mode>` | P12, P13 | MAJOR · MINOR |
-| `<event>` | P18, P19 | NOTE · REST |
-| `<transform>` | P23–P27 | TRANSPOSE · OCTAVE · REPEAT · REVERSE · INVERT |
-| `<sign_opt>` | P29, P30 | PLUS · MINUS |
+| `<music_item>` | P5–P10 | TEMPO · KEY · MELODY · HARMONY · VARIATION · OUTPUT |
+| `<mode>` | P13, P14 | MAJOR · MINOR |
+| `<event>` | P19, P20 | NOTE · REST |
+| `<chord_event>` | P24, P25 | CHORD · REST |
+| `<transform>` | P29–P33 | TRANSPOSE · OCTAVE · REPEAT · REVERSE · INVERT |
+| `<sign_opt>` | P35, P36 | PLUS · MINUS |
 
 Nenhum terminal se repete dentro de uma mesma linha.
 

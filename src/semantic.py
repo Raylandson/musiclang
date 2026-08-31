@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from . import ast
 from .errors import SemanticError
+from .harmony import FuncaoHarmonica, InfoGrau, TeoriaHarmonica
 from .music import MIDI_MAX, MIDI_MIN, numero_midi
 
 BPM_MIN = 20
@@ -35,6 +36,7 @@ _NOME_DO_ITEM = {
     ast.Tempo: "tempo",
     ast.Key: "key",
     ast.Melody: "melody",
+    ast.Harmony: "harmony",
     ast.Output: "output",
 }
 
@@ -47,6 +49,7 @@ class Analise:
     bpm: int
     tonalidade: tuple[str, str, str]
     melodia: ast.Melody
+    harmonia: ast.Harmony | None
     variacoes: list
     arquivo: str
 
@@ -72,6 +75,7 @@ class _Verificador:
         melodia = self._validar_melodia(unicos.get(ast.Melody))
         bpm = self._validar_tempo(unicos.get(ast.Tempo))
         tonalidade = self._tonalidade(unicos.get(ast.Key))
+        harmonia = self._validar_harmonia(unicos.get(ast.Harmony), tonalidade)
 
         for evento in melodia.eventos:
             self._validar_duracao(evento)
@@ -87,6 +91,7 @@ class _Verificador:
             bpm=bpm,
             tonalidade=tonalidade,
             melodia=melodia,
+            harmonia=harmonia,
             variacoes=variacoes,
             arquivo=arquivo,
         )
@@ -147,6 +152,86 @@ class _Verificador:
 
         return no
 
+    # S12, S13, S14, S15, S16, S17 — validação do bloco harmony
+    def _validar_harmonia(
+        self, no: ast.Harmony | None, tonalidade: tuple[str, str, str]
+    ) -> ast.Harmony | None:
+        if no is None:
+            return None
+
+        if not no.eventos:
+            raise self._erro(
+                "S13: o bloco 'harmony' está vazio. É preciso ao menos um acorde.", no
+            )
+
+        for evento in no.eventos:
+            self._validar_duracao(evento)
+
+        acordes = [e for e in no.eventos if isinstance(e, ast.Chord)]
+        if not acordes:
+            raise self._erro(
+                "S13: o bloco 'harmony' contém apenas pausas. É preciso ao menos um acorde.",
+                no,
+            )
+
+        self._validar_progressao(acordes, tonalidade)
+        return no
+
+    def _validar_progressao(
+        self, acordes: list[ast.Chord], tonalidade: tuple[str, str, str]
+    ) -> None:
+        classe_tom, acidente_tom, modo = tonalidade
+        teoria = TeoriaHarmonica(classe_tom, acidente_tom, modo)
+
+        analises: list[tuple[ast.Chord, InfoGrau]] = []
+        for acorde in acordes:
+            info = teoria.analisar_acorde(
+                acorde.classe, acorde.acidente, acorde.qualidade
+            )
+            if info is None:
+                tom_str = f"{classe_tom}{acidente_tom} {modo}"
+                raise self._erro(
+                    f"S14: acorde '{acorde.cifra}' estranho à tonalidade '{tom_str}'. "
+                    "Não pertence ao campo harmônico nem é dominante secundária legítima.",
+                    acorde,
+                )
+            analises.append((acorde, info))
+
+        # Validação da condução funcional clássica estrita passo a passo
+        for i in range(len(analises) - 1):
+            acorde_atual, info_atual = analises[i]
+            acorde_prox, info_prox = analises[i + 1]
+
+            # S16: Dominante secundária deve resolver no seu acorde alvo
+            if info_atual.eh_secundario:
+                if info_prox.grau_numero != info_atual.alvo_grau_numero:
+                    raise self._erro(
+                        f"S16: dominante secundária '{acorde_atual.cifra}' ({info_atual.grau_romano}) "
+                        f"deve resolver no grau alvo {info_atual.alvo_nome}, mas foi seguida por '{acorde_prox.cifra}' ({info_prox.grau_romano}).",
+                        acorde_atual,
+                    )
+
+            # S15: Proibição de retrogradação funcional (Dominante -> Subdominante)
+            if info_atual.funcao == FuncaoHarmonica.DOMINANTE:
+                if info_prox.funcao == FuncaoHarmonica.SUBDOMINANTE:
+                    raise self._erro(
+                        f"S15: violação de condução funcional clássica: retrogradação harmônica de "
+                        f"Dominante ('{acorde_atual.cifra}' - grau {info_atual.grau_romano}) para "
+                        f"Subdominante ('{acorde_prox.cifra}' - grau {info_prox.grau_romano}). "
+                        "A função Dominante deve resolver em Tônica ou cadência de engano.",
+                        acorde_prox,
+                    )
+
+        # S17: Resolução final na Tônica (grau I / i)
+        ultimo_acorde, ultima_info = analises[-1]
+        if ultima_info.grau_numero != 1 or ultima_info.funcao != FuncaoHarmonica.TONICA:
+            raise self._erro(
+                f"S17: progressão harmônica incompleta: encerra em '{ultimo_acorde.cifra}' "
+                f"({ultima_info.grau_romano} - {ultima_info.funcao.value}), mas a condução clássica "
+                "exige resolução final na Tônica (grau I / repouso).",
+                ultimo_acorde,
+            )
+
     # S1 — faixa de BPM
     def _validar_tempo(self, no: ast.Tempo | None) -> int:
         if no is None:
@@ -166,7 +251,7 @@ class _Verificador:
             return TONALIDADE_PADRAO
         return (no.classe, no.acidente, no.modo)
 
-    # S4 — duração representável
+    # S4 / S12 — duração representável
     def _validar_duracao(self, evento) -> None:
         numerador, denominador = evento.duracao
 

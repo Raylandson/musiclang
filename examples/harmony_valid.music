@@ -1,0 +1,36 @@
+# Exemplo de música com progressão harmônica funcional clássica estrita
+# Progressão: I -> IV -> V7/V -> V7 -> vi -> ii -> V7 -> I
+# Cifras: C -> F -> D7 -> G7 -> Am -> Dm -> G7 -> C
+
+music "Sinfonia Funcional" {
+    tempo 120
+    key C major
+
+    harmony {
+        C 1/1
+        F 1/1
+        D7 1/1
+        G7 1/1
+        Am 1/1
+        Dm 1/1
+        G7 1/1
+        C 1/1
+    }
+
+    melody {
+        C4 1/4
+        E4 1/4
+        G4 1/4
+        C5 1/4
+        rest 1/4
+        G4 1/4
+        E4 1/4
+        C4 1/4
+    }
+
+    variation {
+        transpose +2
+    }
+
+    output "sinfonia_funcional.mid"
+}

@@ -1,0 +1,119 @@
+# Johann Pachelbel - Canon in D (Score Original - Violino 1 e Harmonia)
+# Tonalidade: D maior (Ré Maior)
+# Progressão: I -> V -> vi -> iii -> IV -> I -> IV -> V -> I
+
+music "Canon in D" {
+    tempo 70
+    key D major
+
+    harmony {
+        # --- Ciclo 1: Tema (mínimas) ---
+        D 1/2
+        A 1/2
+        Bm 1/2
+        F#m 1/2
+        G 1/2
+        D 1/2
+        G 1/2
+        A 1/2
+
+        D 1/2
+        A 1/2
+        Bm 1/2
+        F#m 1/2
+        G 1/2
+        D 1/2
+        G 1/2
+        A 1/2
+
+        # --- Ciclo 2: Variação 1 (semínimas) ---
+        D 1/2
+        A 1/2
+        Bm 1/2
+        F#m 1/2
+        G 1/2
+        D 1/2
+        G 1/2
+        A 1/2
+
+        # --- Ciclo 3: Variação 2 (colcheias / cascata barroca) ---
+        D 1/2
+        A 1/2
+        Bm 1/2
+        F#m 1/2
+        G 1/2
+        D 1/2
+        G 1/2
+        A 1/2
+
+        # --- Resolução final na Tônica ---
+        D 1/1
+    }
+
+    melody {
+        # --- Tema Principal (mínimas) ---
+        F#4 1/2
+        E4 1/2
+        D4 1/2
+        C#4 1/2
+        B3 1/2
+        A3 1/2
+        B3 1/2
+        C#4 1/2
+
+        # --- Variação 1 (semínimas) ---
+        F#4 1/2
+        E4 1/2
+        D4 1/2
+        C#4 1/2
+        B3 1/2
+        A3 1/2
+        B3 1/2
+        C#4 1/2
+
+        D3 1/4
+        F#3 1/4
+        A3 1/4
+        G3 1/4
+        F#3 1/4
+        D3 1/4
+        F#3 1/4
+        E3 1/4
+        D3 1/4
+        B3 1/4
+        D3 1/4
+        A3 1/4
+        G3 1/4
+        B3 1/4
+        A3 1/4
+        G3 1/4
+
+        F#3 1/4
+        D3 1/4
+        E3 1/4
+        C#4 1/4
+        
+        D4 1/4
+        F#4 1/4
+        A4 1/4
+        A3 1/4
+        
+        B3 1/4
+        G3 1/4
+        A3 1/4
+        F#3 1/4
+
+        D3 1/4
+        D4 1/4
+
+        D4 1/16
+        E4 1/16
+        D4 1/16
+        E4 1/16
+        C#4 1/8
+        
+        D4 1/1
+    }
+
+    output "output/canon_in_d.mid"
+}

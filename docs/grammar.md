@@ -3,7 +3,7 @@
 Notação de `DOCS/BNF_exemplo.pdf`: não-terminais entre `< >`, terminais em maiúsculas,
 `::=` para geração, `|` para alternativa, `ε` para vazio.
 
-**13 não-terminais · 24 terminais · 31 produções.**
+**19 não-terminais · 25 terminais · 37 produções.**
 
 ## Produções
 
@@ -18,34 +18,41 @@ P4   <music_body>       ::= ε
 P5   <music_item>       ::= <tempo_decl>
 P6   <music_item>       ::= <key_decl>
 P7   <music_item>       ::= <melody_block>
-P8   <music_item>       ::= <variation_block>
-P9   <music_item>       ::= <output_decl>
+P8   <music_item>       ::= <harmony_block>
+P9   <music_item>       ::= <variation_block>
+P10  <music_item>       ::= <output_decl>
 
-P10  <tempo_decl>       ::= TEMPO NUMBER
-P11  <key_decl>         ::= KEY PITCH <mode>
-P12  <mode>             ::= MAJOR
-P13  <mode>             ::= MINOR
-P14  <output_decl>      ::= OUTPUT STRING
+P11  <tempo_decl>       ::= TEMPO NUMBER
+P12  <key_decl>         ::= KEY CHORD <mode>
+P13  <mode>             ::= MAJOR
+P14  <mode>             ::= MINOR
+P15  <output_decl>      ::= OUTPUT STRING
 
-P15  <melody_block>     ::= MELODY LBRACE <event_list> RBRACE
-P16  <event_list>       ::= <event> <event_list>
-P17  <event_list>       ::= ε
-P18  <event>            ::= NOTE DURATION
-P19  <event>            ::= REST DURATION
+P16  <melody_block>     ::= MELODY LBRACE <event_list> RBRACE
+P17  <event_list>       ::= <event> <event_list>
+P18  <event_list>       ::= ε
+P19  <event>            ::= NOTE DURATION
+P20  <event>            ::= REST DURATION
 
-P20  <variation_block>  ::= VARIATION LBRACE <transform_list> RBRACE
-P21  <transform_list>   ::= <transform> <transform_list>
-P22  <transform_list>   ::= ε
-P23  <transform>        ::= TRANSPOSE <signed_number>
-P24  <transform>        ::= OCTAVE <signed_number>
-P25  <transform>        ::= REPEAT NUMBER
-P26  <transform>        ::= REVERSE
-P27  <transform>        ::= INVERT
+P21  <harmony_block>    ::= HARMONY LBRACE <chord_event_list> RBRACE
+P22  <chord_event_list> ::= <chord_event> <chord_event_list>
+P23  <chord_event_list> ::= ε
+P24  <chord_event>      ::= CHORD DURATION
+P25  <chord_event>      ::= REST DURATION
 
-P28  <signed_number>    ::= <sign_opt> NUMBER
-P29  <sign_opt>         ::= PLUS
-P30  <sign_opt>         ::= MINUS
-P31  <sign_opt>         ::= ε
+P26  <variation_block>  ::= VARIATION LBRACE <transform_list> RBRACE
+P27  <transform_list>   ::= <transform> <transform_list>
+P28  <transform_list>   ::= ε
+P29  <transform>        ::= TRANSPOSE <signed_number>
+P30  <transform>        ::= OCTAVE <signed_number>
+P31  <transform>        ::= REPEAT NUMBER
+P32  <transform>        ::= REVERSE
+P33  <transform>        ::= INVERT
+
+P34  <signed_number>    ::= <sign_opt> NUMBER
+P35  <sign_opt>         ::= PLUS
+P36  <sign_opt>         ::= MINUS
+P37  <sign_opt>         ::= ε
 ```
 
 ## Decisões de projeto da gramática
@@ -56,7 +63,8 @@ P31  <sign_opt>         ::= ε
 | Fatoração | Nenhuma alternativa de um mesmo não-terminal começa com o mesmo símbolo, então não foi preciso fatorar. |
 | Sinal opcional | `[ + \| - ]` virou o não-terminal anulável `<sign_opt>`, cujo FOLLOW é só `NUMBER` — não colide com `PLUS`/`MINUS`. |
 | Ordem livre dos itens | `<music_body>` aceita `<music_item>` em qualquer ordem e qualquer quantidade. Duplicatas e ausências são problema da **análise semântica** (S5, S6, S7), não da BNF. |
-| Duração | É sempre `DURATION` (`1/4`). `NUMBER` aparece só em `tempo` e `repeat`, o que evita qualquer alternância em `<event>`. |
+| Harmonia funcional | `<harmony_block>` suporta cifras e durações (`CHORD DURATION`). As regras clássicas (T-S-D-T) são validadas na análise semântica (S12 a S17). |
+| Duração | É sempre `DURATION` (`1/4`). `NUMBER` aparece só em `tempo` e `repeat`, o que evita qualquer alternância em `<event>` e `<chord_event>`. |
 
 ## Tabela LL(1) — `M[A, a]`
 
@@ -66,40 +74,24 @@ Uma produção por célula. Célula vazia ⇒ erro sintático.
 |---|---|
 | `<program>` | MUSIC→P1 |
 | `<music>` | MUSIC→P2 |
-| `<music_body>` | TEMPO→P3 · KEY→P3 · MELODY→P3 · VARIATION→P3 · OUTPUT→P3 · RBRACE→P4 |
-| `<music_item>` | TEMPO→P5 · KEY→P6 · MELODY→P7 · VARIATION→P8 · OUTPUT→P9 |
-| `<tempo_decl>` | TEMPO→P10 |
-| `<key_decl>` | KEY→P11 |
-| `<mode>` | MAJOR→P12 · MINOR→P13 |
-| `<output_decl>` | OUTPUT→P14 |
-| `<melody_block>` | MELODY→P15 |
-| `<event_list>` | NOTE→P16 · REST→P16 · RBRACE→P17 |
-| `<event>` | NOTE→P18 · REST→P19 |
-| `<variation_block>` | VARIATION→P20 |
-| `<transform_list>` | TRANSPOSE→P21 · OCTAVE→P21 · REPEAT→P21 · REVERSE→P21 · INVERT→P21 · RBRACE→P22 |
-| `<transform>` | TRANSPOSE→P23 · OCTAVE→P24 · REPEAT→P25 · REVERSE→P26 · INVERT→P27 |
-| `<signed_number>` | PLUS→P28 · MINUS→P28 · NUMBER→P28 |
-| `<sign_opt>` | PLUS→P29 · MINUS→P30 · NUMBER→P31 |
+| `<music_body>` | TEMPO→P3 · KEY→P3 · MELODY→P3 · HARMONY→P3 · VARIATION→P3 · OUTPUT→P3 · RBRACE→P4 |
+| `<music_item>` | TEMPO→P5 · KEY→P6 · MELODY→P7 · HARMONY→P8 · VARIATION→P9 · OUTPUT→P10 |
+| `<tempo_decl>` | TEMPO→P11 |
+| `<key_decl>` | KEY→P12 |
+| `<mode>` | MAJOR→P13 · MINOR→P14 |
+| `<output_decl>` | OUTPUT→P15 |
+| `<melody_block>` | MELODY→P16 |
+| `<event_list>` | NOTE→P17 · REST→P17 · RBRACE→P18 |
+| `<event>` | NOTE→P19 · REST→P20 |
+| `<harmony_block>` | HARMONY→P21 |
+| `<chord_event_list>` | CHORD→P22 · REST→P22 · RBRACE→P23 |
+| `<chord_event>` | CHORD→P24 · REST→P25 |
+| `<variation_block>` | VARIATION→P26 |
+| `<transform_list>` | TRANSPOSE→P27 · OCTAVE→P27 · REPEAT→P27 · REVERSE→P27 · INVERT→P27 · RBRACE→P28 |
+| `<transform>` | TRANSPOSE→P29 · OCTAVE→P30 · REPEAT→P31 · REVERSE→P32 · INVERT→P33 |
+| `<signed_number>` | PLUS→P34 · MINUS→P34 · NUMBER→P34 |
+| `<sign_opt>` | PLUS→P35 · MINUS→P36 · NUMBER→P37 |
 
-**42 células preenchidas.** A construção da tabela em `src/parser.py` levanta `GrammarError`
+**50 células preenchidas.** A construção da tabela em `src/parser.py` levanta `GrammarError`
 se alguma célula receber uma segunda produção — a ausência de conflitos é verificada em tempo
 de importação, não confiada à conferência manual.
-
-## Algoritmo do parser
-
-```
-empilha <program>
-enquanto a pilha não estiver vazia:
-    topo = desempilha()
-    se topo é terminal:
-        casa com o lookahead e avança          (senão: ParserError)
-    se topo é não-terminal:
-        p = M[topo, lookahead]                 (se vazio: ParserError)
-        empilha a ação de p
-        empilha o lado direito de p invertido
-    se topo é ação:
-        desempilha os valores dos símbolos de p e constrói o nó da AST
-```
-
-A ação é empilhada **antes** do lado direito. Como a pilha é LIFO, ela sai por último — depois
-que todos os símbolos daquela produção já produziram seus valores.

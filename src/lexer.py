@@ -2,12 +2,6 @@
 
 Percorre o fonte caractere a caractere, sem expressões regulares: o autômato é
 construído à mão, como o projeto exige.
-
-Duas decisões de reconhecimento resolvem toda a ambiguidade da linguagem, ambas
-com um único caractere de lookahead (README §6):
-
-    depois de [A-G] com acidente opcional -> dígito  vira NOTE, senão PITCH
-    depois de dígitos                     -> '/'+dígito vira DURATION, senão NUMBER
 """
 
 from __future__ import annotations
@@ -27,6 +21,7 @@ class TokenType(Enum):
     MAJOR = "MAJOR"
     MINOR = "MINOR"
     MELODY = "MELODY"
+    HARMONY = "HARMONY"
     REST = "REST"
     VARIATION = "VARIATION"
     TRANSPOSE = "TRANSPOSE"
@@ -47,6 +42,7 @@ class TokenType(Enum):
     STRING = "STRING"
     NOTE = "NOTE"
     PITCH = "PITCH"
+    CHORD = "CHORD"
     DURATION = "DURATION"
 
     # Controle
@@ -60,6 +56,7 @@ PALAVRAS_RESERVADAS = {
     "major": TokenType.MAJOR,
     "minor": TokenType.MINOR,
     "melody": TokenType.MELODY,
+    "harmony": TokenType.HARMONY,
     "rest": TokenType.REST,
     "variation": TokenType.VARIATION,
     "transpose": TokenType.TRANSPOSE,
@@ -81,6 +78,12 @@ CLASSES_DE_ALTURA = "ABCDEFG"
 ACIDENTES = "#b"
 COMENTARIO = "#"
 
+SUFIXOS_ACORDE = [
+    "m7b5", "m7(b5)", "maj7", "dim7", "mMaj7", "min", "maj",
+    "dim", "aug", "m7", "7M", "M7", "°7", "º7", "7", "m",
+    "°", "º", "+"
+]
+
 
 @dataclass(frozen=True)
 class Token:
@@ -92,6 +95,7 @@ class Token:
         NUMBER    -> int
         STRING    -> str (sem as aspas)
         NOTE      -> (classe, acidente, oitava)
+        CHORD     -> (classe, acidente, qualidade)
         PITCH     -> (classe, acidente)
         DURATION  -> (numerador, denominador)
     """
@@ -183,7 +187,7 @@ class Lexer:
         if c.isdigit():
             return self._numero_ou_duracao()
         if c in CLASSES_DE_ALTURA:
-            return self._nota_ou_altura()
+            return self._nota_ou_acorde()
         if c.islower() or c == "_":
             return self._palavra_reservada()
         if c.isupper():
@@ -234,7 +238,7 @@ class Lexer:
             digitos.append(self._avancar())
         return "".join(digitos)
 
-    def _nota_ou_altura(self) -> Token:
+    def _nota_ou_acorde(self) -> Token:
         linha, coluna = self.linha, self.coluna
         classe = self._avancar()
 
@@ -242,16 +246,26 @@ class Lexer:
         if self._espiar() in ACIDENTES and self._espiar() != "":
             acidente = self._avancar()
 
-        # A oitava é aceita com qualquer número de dígitos de propósito: C99
-        # precisa passar pelo lexer para a semântica poder rejeitá-lo (S2).
+        # Verifica se casa com sufixo de qualidade de acorde
+        resto = self.fonte[self.pos :]
+        for sufixo in SUFIXOS_ACORDE:
+            if resto.startswith(sufixo):
+                for _ in sufixo:
+                    self._avancar()
+                lexema = f"{classe}{acidente}{sufixo}"
+                valor = (classe, acidente, sufixo)
+                return Token(TokenType.CHORD, lexema, linha, coluna, valor)
+
+        # Se houver dígitos de oitava, é NOTE (ex: C4, C99)
         if self._espiar().isdigit():
             oitava = self._digitos()
             lexema = f"{classe}{acidente}{oitava}"
             valor = (classe, acidente, int(oitava))
             return Token(TokenType.NOTE, lexema, linha, coluna, valor)
 
+        # Sem sufixo e sem dígito, é CHORD com tríade maior padrão (ex: C, F#)
         lexema = f"{classe}{acidente}"
-        return Token(TokenType.PITCH, lexema, linha, coluna, (classe, acidente))
+        return Token(TokenType.CHORD, lexema, linha, coluna, (classe, acidente, ""))
 
     def _palavra_reservada(self) -> Token:
         linha, coluna = self.linha, self.coluna

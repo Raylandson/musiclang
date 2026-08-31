@@ -44,8 +44,11 @@ class NT(Enum):
     MODE = "<mode>"
     OUTPUT_DECL = "<output_decl>"
     MELODY_BLOCK = "<melody_block>"
+    HARMONY_BLOCK = "<harmony_block>"
     EVENT_LIST = "<event_list>"
     EVENT = "<event>"
+    CHORD_EVENT_LIST = "<chord_event_list>"
+    CHORD_EVENT = "<chord_event>"
     VARIATION_BLOCK = "<variation_block>"
     TRANSFORM_LIST = "<transform_list>"
     TRANSFORM = "<transform>"
@@ -89,6 +92,7 @@ _ESPECIFICACAO = [
     (NT.MUSIC_ITEM, (NT.TEMPO_DECL,), lambda v: v[0]),
     (NT.MUSIC_ITEM, (NT.KEY_DECL,), lambda v: v[0]),
     (NT.MUSIC_ITEM, (NT.MELODY_BLOCK,), lambda v: v[0]),
+    (NT.MUSIC_ITEM, (NT.HARMONY_BLOCK,), lambda v: v[0]),
     (NT.MUSIC_ITEM, (NT.VARIATION_BLOCK,), lambda v: v[0]),
     (NT.MUSIC_ITEM, (NT.OUTPUT_DECL,), lambda v: v[0]),
     (
@@ -98,7 +102,7 @@ _ESPECIFICACAO = [
     ),
     (
         NT.KEY_DECL,
-        (TokenType.KEY, TokenType.PITCH, NT.MODE),
+        (TokenType.KEY, TokenType.CHORD, NT.MODE),
         lambda v: ast.Key(v[1].valor[0], v[1].valor[1], v[2], *_pos(v[0])),
     ),
     (NT.MODE, (TokenType.MAJOR,), lambda v: "major"),
@@ -122,6 +126,23 @@ _ESPECIFICACAO = [
     ),
     (
         NT.EVENT,
+        (TokenType.REST, TokenType.DURATION),
+        lambda v: ast.Rest(v[1].valor, *_pos(v[0])),
+    ),
+    (
+        NT.HARMONY_BLOCK,
+        (TokenType.HARMONY, TokenType.LBRACE, NT.CHORD_EVENT_LIST, TokenType.RBRACE),
+        lambda v: ast.Harmony(v[2], *_pos(v[0])),
+    ),
+    (NT.CHORD_EVENT_LIST, (NT.CHORD_EVENT, NT.CHORD_EVENT_LIST), lambda v: [v[0], *v[1]]),
+    (NT.CHORD_EVENT_LIST, (), lambda v: []),
+    (
+        NT.CHORD_EVENT,
+        (TokenType.CHORD, TokenType.DURATION),
+        lambda v: ast.Chord(v[0].lexema, v[0].valor[0], v[0].valor[1], v[0].valor[2], v[1].valor, *_pos(v[0])),
+    ),
+    (
+        NT.CHORD_EVENT,
         (TokenType.REST, TokenType.DURATION),
         lambda v: ast.Rest(v[1].valor, *_pos(v[0])),
     ),
